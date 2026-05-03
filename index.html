@@ -319,7 +319,8 @@ img { display: block; }
 .header-actions { display: flex; align-items: center; gap: 0.75rem; }
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; margin-bottom: 1.25rem; }
 @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 1.25rem; } }
-.stat-card { padding: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.stat-card { padding: 1rem; display: flex; align-items: center; gap: 0.75rem; overflow: hidden; }
+.stat-value { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.15rem 0; font-family: var(--mono); word-break: break-all; }
 .stat-icon { font-size: 2rem; flex-shrink: 0; }
 .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .stat-value { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.15rem 0; font-family: var(--mono); }
@@ -538,25 +539,28 @@ img { display: block; }
 /* ============================================================
    ADMIN
    ============================================================ */
-.admin-tabs { display: flex; gap: 0.25rem; padding: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; overflow-x: auto; }
-.admin-tab { padding: 0.6rem 1rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; color: var(--text-2); transition: all 0.2s; white-space: nowrap; cursor: pointer; background: none; border: none; }
+/* ============================================================
+   ADMIN
+   ============================================================ */
+.admin-tabs { display: flex; gap: 0.25rem; padding: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admin-tab { padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; color: var(--text-2); transition: all 0.2s; white-space: nowrap; cursor: pointer; background: none; border: none; }
 .admin-tab.active { background: var(--primary); color: white; }
-.admin-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-.admin-table-wrap { overflow-x: auto; }
-.admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.admin-table th { text-align: left; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--text-2); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.admin-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.admin-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem; }
+.admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 500px; }
+.admin-table th { text-align: left; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--text-2); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.admin-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table tr:hover td { background: rgba(255,255,255,0.02); }
-.admin-product-img { width: 40px; height: 30px; border-radius: 4px; object-fit: cover; }
+.admin-product-img { width: 36px; height: 28px; border-radius: 4px; object-fit: cover; }
 .admin-product-name { display: flex; align-items: center; gap: 0.5rem; }
-.action-btns { display: flex; gap: 0.5rem; align-items: center; }
+.action-btns { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .user-name-cell { display: flex; align-items: center; gap: 0.5rem; }
 .user-avatar-sm { width: 28px; height: 28px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
-.testimonials-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.testimonials-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
 .testimonial-admin-card { padding: 1.25rem; }
-.admin-analytics .stats-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-
+.admin-analytics .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+@media (min-width: 1024px) { .admin-analytics .stats-grid { grid-template-columns: repeat(3, 1fr); } }
 /* ============================================================
    RESPONSIVE
    ============================================================ */
@@ -808,7 +812,13 @@ const Utils = {
 // DB MODULE
 // ============================================================
 const DB = {
-  async getProducts() { const { data, error } = await supabaseClient.from('products').select('*').eq('is_active', true).order('price'); return { data: data || [], error }; },
+  async getProducts() {
+  const cached = Cache.get('products');
+  if (cached) return { data: cached, error: null };
+  const { data, error } = await supabaseClient.from('products').select('*').eq('is_active', true).order('price');
+  if (!error && data) Cache.set('products', data);
+  return { data: data || [], error };
+},
   async getAllProducts() { const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false }); return { data: data || [], error }; },
   async saveProduct(product) {
     if (product.id) { const { id, ...rest } = product; return supabaseClient.from('products').update({ ...rest, updated_at: new Date().toISOString() }).eq('id', id); }
@@ -828,10 +838,22 @@ const DB = {
     const nextCashback = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     return supabaseClient.from('orders').update({ status: 'active', started_at: now.toISOString(), ends_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(), next_cashback_at: nextCashback.toISOString(), razorpay_payment_id: razorpayPaymentId, updated_at: now.toISOString() }).eq('id', orderId);
   },
-  async getOrders() { const { data, error } = await supabaseClient.from('orders').select('*, products(name, image_url)').eq('user_id', Auth.currentUser.id).order('created_at', { ascending: false }); return { data: data || [], error }; },
+  async getOrders() {
+  const cached = Cache.get('orders_' + Auth.currentUser.id);
+  if (cached) return { data: cached, error: null };
+  const { data, error } = await supabaseClient.from('orders').select('*, products(name, image_url)').eq('user_id', Auth.currentUser.id).order('created_at', { ascending: false });
+  if (!error && data) Cache.set('orders_' + Auth.currentUser.id, data);
+  return { data: data || [], error };
+},
   async getAllOrders() { const { data, error } = await supabaseClient.from('orders').select('*, users(full_name, email), products(name)').order('created_at', { ascending: false }).limit(100); return { data: data || [], error }; },
   async getCashbackLogs(orderId) { const { data } = await supabaseClient.from('cashback_logs').select('*').eq('order_id', orderId).order('day_number'); return data || []; },
-  async getWalletTransactions(limit = 20) { const { data } = await supabaseClient.from('wallet_transactions').select('*').eq('user_id', Auth.currentUser.id).order('created_at', { ascending: false }).limit(limit); return data || []; },
+async getWalletTransactions(limit = 20) {
+  const cached = Cache.get('txns_' + Auth.currentUser.id);
+  if (cached) return cached;
+  const { data } = await supabaseClient.from('wallet_transactions').select('*').eq('user_id', Auth.currentUser.id).order('created_at', { ascending: false }).limit(limit);
+  if (data) Cache.set('txns_' + Auth.currentUser.id, data);
+  return data || [];
+},
   async creditWallet(amount, type, description, refId = null, refType = null) { const { data, error } = await supabaseClient.rpc('credit_wallet', { p_user_id: Auth.currentUser.id, p_amount: amount, p_type: type, p_description: description, p_reference_id: refId, p_reference_type: refType }); return { data, error }; },
   async debitWallet(amount, type, description, refId = null, refType = null) { const { data, error } = await supabaseClient.rpc('debit_wallet', { p_user_id: Auth.currentUser.id, p_amount: amount, p_type: type, p_description: description, p_reference_id: refId, p_reference_type: refType }); return { data, error }; },
   async requestWithdrawal(amount, upiId) {
@@ -869,6 +891,20 @@ const DB = {
 };
 
 const ActiveTimers = {};
+// ── CACHE ──
+const Cache = {
+  data: {},
+  ttl: 30000, // 30 seconds
+  set(key, value) { this.data[key] = { value, time: Date.now() }; },
+  get(key) {
+    const d = this.data[key];
+    if (!d) return null;
+    if (Date.now() - d.time > this.ttl) { delete this.data[key]; return null; }
+    return d.value;
+  },
+  clear() { this.data = {}; }
+};
+window.Cache = Cache;
 function clearAllTimers() { Object.values(ActiveTimers).forEach(t => clearInterval(t)); Object.keys(ActiveTimers).forEach(k => delete ActiveTimers[k]); }
 
 window.supabaseClient = supabaseClient;
@@ -1601,6 +1637,7 @@ window.showPaymentModal = function(product) {
 
 window.selectPM = function(el) { document.querySelectorAll('.pm-option').forEach(o => o.classList.remove('active')); el.classList.add('active'); };
 
+Cache.clear();
 window.processPayment = async function(productId) {
   let products = [];
   try { products = (await DB.getProducts()).data; } catch(e) {}
@@ -1616,6 +1653,7 @@ window.processPayment = async function(productId) {
     if (balance < product.price) { Toast.show(`Insufficient wallet balance. Need ${Utils.formatCurrency(product.price)}.`, 'error'); btn.disabled = false; btn.textContent = 'Pay'; return; }
     const debit = await DB.debitWallet(product.price, 'debit', `Purchase: ${product.name}`, order.id, 'order');
     if (debit.error || !debit.data?.success) { Toast.show('Wallet debit failed', 'error'); btn.disabled = false; btn.textContent = 'Pay'; return; }
+    Cache.clear();
     await DB.activateOrder(order.id, 'wallet_payment');
     await Auth.loadProfile();
     document.getElementById('payment-modal')?.remove();
@@ -1890,6 +1928,7 @@ window.showWithdrawalModal = function(balance, savedUpi) {
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 };
+Cache.clear();
 window.submitWithdrawal = async function() {
   const amount = parseFloat(document.getElementById('wd-amount').value);
   const upi = document.getElementById('wd-upi').value.trim();
@@ -1949,6 +1988,7 @@ window.renderProfile = async function() {
     </div>
   `;
 };
+Cache.clear();
 window.saveProfile = async function() {
   const name = document.getElementById('p-name').value.trim();
   const upi = document.getElementById('p-upi').value.trim();
@@ -2009,40 +2049,49 @@ async function renderAdminAnalytics(container) {
   let stats = { totalUsers:0, totalOrders:0, activeOrders:0, totalRevenue:0, totalCashbackPaid:0, pendingWithdrawals:0, totalWithdrawn:0 };
   try { stats = await DB.getAnalytics(); } catch(e) {}
   container.innerHTML = `
-    <div class="admin-analytics">
-      <div class="stats-grid">
-        ${[['👥','Total Users',stats.totalUsers,'Registered accounts','badge-info'],['📋','Total Orders',stats.totalOrders,`${stats.activeOrders} active`,'badge-success'],['💰','Total Revenue',Utils.formatCurrency(stats.totalRevenue),'From all orders','badge-purple'],['💸','Cashback Paid',Utils.formatCurrency(stats.totalCashbackPaid),'To all users','badge-warning'],['⏳','Pending Withdrawals',stats.pendingWithdrawals,'Awaiting approval','badge-danger'],['✅','Total Withdrawn',Utils.formatCurrency(stats.totalWithdrawn),'Processed','badge-success']].map(([icon,label,value,sub,cls]) => `
-          <div class="stat-card glass-card">
-            <div class="stat-icon">${icon}</div>
-            <div class="stat-info"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-change"><span class="badge ${cls}">${sub}</span></div></div>
-          </div>
-        `).join('')}
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      ${[
+        ['👥','Total Users',stats.totalUsers,'Registered accounts','badge-info'],
+        ['📋','Total Orders',stats.totalOrders,`${stats.activeOrders} active`,'badge-success'],
+        ['💰','Total Revenue',Utils.formatCurrency(stats.totalRevenue),'From all orders','badge-purple'],
+        ['💸','Cashback Paid',Utils.formatCurrency(stats.totalCashbackPaid),'To all users','badge-warning'],
+        ['⏳','Pending Withdrawals',stats.pendingWithdrawals,'Awaiting approval','badge-danger'],
+        ['✅','Total Withdrawn',Utils.formatCurrency(stats.totalWithdrawn),'Processed','badge-success']
+      ].map(([icon,label,value,sub,cls]) => `
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1rem;display:flex;flex-direction:column;gap:0.4rem;min-width:0;overflow:hidden">
+          <div style="font-size:1.5rem">${icon}</div>
+          <div style="font-size:0.65rem;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.05em">${label}</div>
+          <div style="font-size:1.1rem;font-weight:800;font-family:var(--mono);word-break:break-all">${value}</div>
+          <span class="badge ${cls}" style="font-size:0.6rem;align-self:flex-start">${sub}</span>
+        </div>
+      `).join('')}
     </div>
   `;
 }
 
-async function renderAdminProducts(container) {
-  let products = [];
-  try { products = (await DB.getAllProducts()).data; } catch(e) {}
+async function renderAdminUsers(container) {
+  let users = [];
+  try { users = await DB.getAllUsers(); } catch(e) {}
   container.innerHTML = `
     <div>
-      <div class="admin-section-header"><h2 class="card-title">Products (${products.length})</h2><button class="btn btn-primary" onclick="showProductModal()">+ Add Product</button></div>
-      <div class="admin-table-wrap glass-card" style="padding:0">
-        <table class="admin-table">
-          <thead><tr><th>Product</th><th>Price</th><th>Cashback %</th><th>Duration</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${products.map(p => `
-            <tr>
-              <td><div class="admin-product-name"><img src="${p.image_url || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=60'}" class="admin-product-img" onerror="this.src='https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=60'"><span>${p.name}</span></div></td>
-              <td>${Utils.formatCurrency(p.price)}</td>
-              <td><span class="badge badge-success">${p.cashback_percent}%</span></td>
-              <td>${p.duration_days} days</td>
-              <td>${p.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
-              <td><div class="action-btns"><button class="btn btn-sm btn-outline" onclick='showProductModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Edit</button><button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}')">Delete</button></div></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div class="admin-section-header"><h2 class="card-title">Users (${users.length})</h2></div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        ${users.map(u => `
+        <div class="glass-card" style="padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+            <div class="user-avatar-sm">${(u.full_name||'U')[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.full_name||'N/A'}</div>
+              <div style="font-size:0.72rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email||u.phone||''}</div>
+            </div>
+            ${u.role==='admin'?'<span class="badge badge-purple">Admin</span>':'<span class="badge badge-info">User</span>'}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.75rem">
+            <div><div style="color:var(--text-3)">Balance</div><div style="color:var(--success);font-weight:600;font-family:var(--mono)">${Utils.formatCurrency(u.wallet_balance)}</div></div>
+            <div><div style="color:var(--text-3)">Invested</div><div style="font-weight:600;font-family:var(--mono)">${Utils.formatCurrency(u.total_invested)}</div></div>
+            <div><div style="color:var(--text-3)">Joined</div><div style="font-weight:600">${Utils.formatDate(u.created_at)}</div></div>
+          </div>
+        </div>`).join('')}
       </div>
     </div>
   `;
@@ -2102,21 +2151,23 @@ async function renderAdminUsers(container) {
   container.innerHTML = `
     <div>
       <div class="admin-section-header"><h2 class="card-title">Users (${users.length})</h2></div>
-      <div class="admin-table-wrap glass-card" style="padding:0">
-        <table class="admin-table">
-          <thead><tr><th>User</th><th>Contact</th><th>Balance</th><th>Invested</th><th>Role</th><th>Joined</th></tr></thead>
-          <tbody>
-            ${users.map(u => `
-            <tr>
-              <td><div class="user-name-cell"><div class="user-avatar-sm">${(u.full_name || 'U')[0]}</div><span>${u.full_name || 'N/A'}</span></div></td>
-              <td><div>${u.email || ''}</div><div class="text-muted">${u.phone || ''}</div></td>
-              <td class="text-success">${Utils.formatCurrency(u.wallet_balance)}</td>
-              <td>${Utils.formatCurrency(u.total_invested)}</td>
-              <td>${u.role === 'admin' ? '<span class="badge badge-purple">Admin</span>' : '<span class="badge badge-info">User</span>'}</td>
-              <td>${Utils.formatDate(u.created_at)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        ${users.map(u => `
+        <div class="glass-card" style="padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+            <div class="user-avatar-sm">${(u.full_name||'U')[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:0.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.full_name||'N/A'}</div>
+              <div style="font-size:0.72rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email||u.phone||''}</div>
+            </div>
+            ${u.role==='admin'?'<span class="badge badge-purple">Admin</span>':'<span class="badge badge-info">User</span>'}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.75rem">
+            <div><div style="color:var(--text-3)">Balance</div><div style="color:var(--success);font-weight:600;font-family:var(--mono)">${Utils.formatCurrency(u.wallet_balance)}</div></div>
+            <div><div style="color:var(--text-3)">Invested</div><div style="font-weight:600;font-family:var(--mono)">${Utils.formatCurrency(u.total_invested)}</div></div>
+            <div><div style="color:var(--text-3)">Joined</div><div style="font-weight:600">${Utils.formatDate(u.created_at)}</div></div>
+          </div>
+        </div>`).join('')}
       </div>
     </div>
   `;
@@ -2128,22 +2179,22 @@ async function renderAdminOrders(container) {
   container.innerHTML = `
     <div>
       <div class="admin-section-header"><h2 class="card-title">Orders (${orders.length})</h2></div>
-      <div class="admin-table-wrap glass-card" style="padding:0">
-        <table class="admin-table">
-          <thead><tr><th>Order</th><th>User</th><th>Product</th><th>Amount</th><th>Cashback</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody>
-            ${orders.map(o => `
-            <tr>
-              <td class="text-muted">${o.id.substring(0,8)}...</td>
-              <td>${o.users?.full_name || o.users?.email || 'N/A'}</td>
-              <td>${o.products?.name || o.product_snapshot?.name || 'N/A'}</td>
-              <td>${Utils.formatCurrency(o.amount)}</td>
-              <td class="text-success">+${Utils.formatCurrency(o.cashback_earned)}</td>
-              <td>${Utils.statusBadge(o.status)}</td>
-              <td>${Utils.formatDate(o.created_at)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        ${orders.map(o => `
+        <div class="glass-card" style="padding:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
+            <div>
+              <div style="font-weight:700;font-size:0.875rem">${o.users?.full_name||o.users?.email||'N/A'}</div>
+              <div style="font-size:0.75rem;color:var(--text-2)">${o.products?.name||o.product_snapshot?.name||'N/A'}</div>
+              <div style="font-size:0.7rem;color:var(--text-3);margin-top:0.2rem">${Utils.formatDate(o.created_at)}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:1rem;font-weight:800;font-family:var(--mono)">${Utils.formatCurrency(o.amount)}</div>
+              <div style="margin-top:0.25rem">${Utils.statusBadge(o.status)}</div>
+              <div style="font-size:0.75rem;color:var(--success);font-family:var(--mono);margin-top:0.2rem">+${Utils.formatCurrency(o.cashback_earned)}</div>
+            </div>
+          </div>
+        </div>`).join('')}
       </div>
     </div>
   `;
@@ -2155,21 +2206,26 @@ async function renderAdminWithdrawals(container) {
   container.innerHTML = `
     <div>
       <div class="admin-section-header"><h2 class="card-title">Withdrawals (${withdrawals.length})</h2></div>
-      <div class="admin-table-wrap glass-card" style="padding:0">
-        <table class="admin-table">
-          <thead><tr><th>User</th><th>UPI ID</th><th>Amount</th><th>Status</th><th>Requested</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${withdrawals.map(w => `
-            <tr id="wd-row-${w.id}">
-              <td>${w.users?.full_name || w.users?.email || 'N/A'}</td>
-              <td>${w.upi_id}</td>
-              <td class="text-success">${Utils.formatCurrency(w.amount)}</td>
-              <td>${Utils.statusBadge(w.status)}</td>
-              <td>${Utils.formatDate(w.requested_at || w.created_at)}</td>
-              <td>${w.status === 'pending' ? `<div class="action-btns"><button class="btn btn-sm btn-success" onclick="approveWithdrawal('${w.id}')">Approve</button><button class="btn btn-sm btn-danger" onclick="rejectWithdrawal('${w.id}')">Reject</button></div>` : `<span class="text-muted">—</span>`}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        ${withdrawals.map(w => `
+        <div class="glass-card" style="padding:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem">
+            <div>
+              <div style="font-weight:700;font-size:0.875rem">${w.users?.full_name||w.users?.email||'N/A'}</div>
+              <div style="font-size:0.75rem;color:var(--text-2);margin-top:0.2rem">📱 ${w.upi_id}</div>
+              <div style="font-size:0.7rem;color:var(--text-3);margin-top:0.1rem">${Utils.formatDate(w.requested_at||w.created_at)}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:1rem;font-weight:800;font-family:var(--mono)">${Utils.formatCurrency(w.amount)}</div>
+              <div style="margin-top:0.25rem">${Utils.statusBadge(w.status)}</div>
+            </div>
+          </div>
+          ${w.status==='pending'?`
+          <div style="display:flex;gap:0.5rem">
+            <button class="btn btn-success btn-sm" style="flex:1" onclick="approveWithdrawal('${w.id}')">✓ Approve</button>
+            <button class="btn btn-danger btn-sm" style="flex:1" onclick="rejectWithdrawal('${w.id}')">✕ Reject</button>
+          </div>`:''}
+        </div>`).join('')}
       </div>
     </div>
   `;
