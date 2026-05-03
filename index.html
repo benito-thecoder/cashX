@@ -304,8 +304,8 @@ img { display: block; }
 .topbar { position: sticky; top: 0; z-index: 50; background: rgba(5,11,24,0.9); border-bottom: 1px solid var(--border); backdrop-filter: blur(20px); height: var(--topbar-h); display: flex; align-items: center; gap: 1rem; padding: 0 1.5rem; }
 .topbar-menu-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; font-size: 1.2rem; color: var(--text); cursor: pointer; border-radius: 8px; }
 @media (min-width: 1024px) { .topbar-menu-btn { display: none; } }
-.topbar-search { flex: 1; max-width: 400px; }
-.topbar-search-input { background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 0.5rem 1rem; color: var(--text); width: 100%; font-size: 0.85rem; outline: none; }
+.topbar-search { flex: 1; max-width: 400px; min-width: 0; }
+.topbar-search-input { background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 0.5rem 0.75rem; color: var(--text); width: 100%; font-size: 0.85rem; outline: none; min-width: 0; }
 .topbar-right { display: flex; align-items: center; gap: 1.25rem; margin-left: auto; }
 .topbar-balance { display: flex; flex-direction: column; align-items: flex-end; }
 .topbar-balance-label { font-size: 0.65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -323,7 +323,7 @@ img { display: block; }
 .stat-value { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.15rem 0; font-family: var(--mono); word-break: break-all; }
 .stat-icon { font-size: 2rem; flex-shrink: 0; }
 .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
-.stat-value { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin: 0.15rem 0; font-family: var(--mono); }
+.stat-value { font-size: clamp(1rem, 4vw, 1.4rem); font-weight: 800; letter-spacing: -0.02em; margin: 0.15rem 0; font-family: var(--mono); word-break: break-all; min-width: 0; }
 .stat-change { font-size: 0.75rem; color: var(--text-2); }
 .section-card { padding: 1.5rem; margin-bottom: 1.25rem; }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
@@ -413,19 +413,20 @@ img { display: block; }
 /* ============================================================
    WALLET PAGE
    ============================================================ */
-.wallet-hero-card { padding: 2rem; margin-bottom: 1.25rem; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(34,211,238,0.05)); border: 1px solid rgba(99,102,241,0.2); }
+.wallet-hero-card { padding: 1.25rem; margin-bottom: 1.25rem; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(34,211,238,0.05)); border: 1px solid rgba(99,102,241,0.2); overflow: hidden; }
 .wallet-balance-section { text-align: center; margin-bottom: 1.5rem; }
 .wallet-label { font-size: 0.75rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-.wallet-amount { font-size: 3rem; font-weight: 800; letter-spacing: -0.03em; font-family: var(--mono); }
+.wallet-amount { font-size: clamp(1.8rem, 8vw, 3rem); font-weight: 800; letter-spacing: -0.03em; font-family: var(--mono); word-break: break-all; }
 .wallet-sub { font-size: 0.75rem; color: var(--text-3); margin-top: 0.25rem; }
-.wallet-actions { display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
-.wallet-action-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); font-weight: 600; font-size: 0.875rem; color: var(--text); cursor: pointer; transition: all 0.2s; }
+.wallet-actions { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.wallet-action-btn { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 0.875rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); font-weight: 600; font-size: 0.8rem; color: var(--text); cursor: pointer; transition: all 0.2s; flex: 1; justify-content: center; min-width: 80px; }
 .wallet-action-btn:hover { border-color: var(--primary); color: var(--primary-light); }
-.wallet-stats { display: flex; justify-content: center; gap: 3rem; }
+.wallet-stats { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 .wallet-stat { text-align: center; }
 .ws-label { font-size: 0.7rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
-.ws-value { font-size: 1rem; font-weight: 700; font-family: var(--mono); margin-top: 0.2rem; }
-.filter-bar { display: flex; gap: 0.5rem; padding: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.ws-value { font-size: clamp(0.8rem, 3.5vw, 1rem); font-weight: 700; font-family: var(--mono); margin-top: 0.2rem; word-break: break-all; }
+.filter-bar { display: flex; gap: 0.5rem; padding: 0.75rem; margin-bottom: 1.25rem; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.filter-bar::-webkit-scrollbar { display: none; }
 .filter-btn { padding: 0.4rem 0.875rem; border-radius: 100px; font-size: 0.8rem; font-weight: 600; color: var(--text-2); border: 1px solid var(--border); transition: all 0.2s; cursor: pointer; background: transparent; }
 .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
