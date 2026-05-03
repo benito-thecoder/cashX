@@ -311,7 +311,11 @@ img { display: block; }
 .topbar-balance-label { font-size: 0.65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
 .topbar-balance-val { font-size: 0.875rem; font-weight: 700; color: var(--success); font-family: var(--mono); }
 .topbar-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
-.page-content { padding: 1.25rem 1rem calc(68px + env(safe-area-inset-bottom) + 1rem); flex: 1; }
+.page-content { padding: 1rem 0.875rem calc(80px + env(safe-area-inset-bottom)); flex: 1; }
+
+@media (min-width: 1024px) {
+  .page-content { padding: 2rem 1.5rem 3rem; }
+}
 @media (min-width: 1024px) { .page-content { padding: 2rem 1.5rem 3rem; } }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
 .page-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.5rem; }
@@ -374,21 +378,33 @@ img { display: block; }
 /* ============================================================
    PRODUCTS PAGE
    ============================================================ */
-.products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-.product-card { overflow: hidden; }
+.products-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+
+@media (min-width: 640px) {
+  .products-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}
+.product-card { overflow: visible; width: 100%; }
 .product-img-wrap { position: relative; aspect-ratio: 16/9; overflow: hidden; }
 .product-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .product-card:hover .product-img { transform: scale(1.05); }
 .product-badge { position: absolute; top: 0.75rem; left: 0.75rem; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 100px; }
-.product-body { padding: 1.5rem; }
+.product-body { padding: 1rem; }
+
+@media (min-width: 640px) {
+  .product-body { padding: 1.5rem; }
+}
 .product-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
 .product-desc { font-size: 0.8rem; color: var(--text-2); margin-bottom: 1rem; line-height: 1.5; }
-.product-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); padding: 1rem; }
-.ps-label { font-size: 0.65rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
-.ps-value { font-size: 0.9rem; font-weight: 700; font-family: var(--mono); margin-top: 0.15rem; }
+.product-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); padding: 0.875rem; overflow: hidden; }
+.ps-label { font-size: 0.6rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-value { font-size: clamp(0.75rem, 3.5vw, 0.9rem); font-weight: 700; font-family: var(--mono); margin-top: 0.15rem; word-break: break-word; min-width: 0; }
 .product-features { list-style: none; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .product-features li { font-size: 0.78rem; color: var(--text-2); display: flex; align-items: center; gap: 0.4rem; }
-.product-actions { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; }
+.product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+@media (min-width: 400px) {
+  .product-actions { grid-template-columns: 1fr auto; gap: 0.75rem; }
+}
 
 /* ============================================================
    CART PAGE
@@ -856,7 +872,18 @@ async getWalletTransactions(limit = 20) {
   return data || [];
 },
   async creditWallet(amount, type, description, refId = null, refType = null) { const { data, error } = await supabaseClient.rpc('credit_wallet', { p_user_id: Auth.currentUser.id, p_amount: amount, p_type: type, p_description: description, p_reference_id: refId, p_reference_type: refType }); return { data, error }; },
-  async debitWallet(amount, type, description, refId = null, refType = null) { const { data, error } = await supabaseClient.rpc('debit_wallet', { p_user_id: Auth.currentUser.id, p_amount: amount, p_type: type, p_description: description, p_reference_id: refId, p_reference_type: refType }); return { data, error }; },
+async debitWallet(amount, type, description, refId = null, refType = null) { 
+    const { data, error } = await supabaseClient.rpc('debit_wallet', { 
+      p_user_id: Auth.currentUser.id, 
+      p_amount: parseFloat(amount), 
+      p_type: type, 
+      p_description: description, 
+      p_reference_id: refId || null, 
+      p_reference_type: refType || null 
+    }); 
+    console.log('debitWallet RPC response:', data, error);
+    return { data, error }; 
+  },
   async requestWithdrawal(amount, upiId) {
     const result = await this.debitWallet(amount, 'withdrawal', `Withdrawal request of ₹${amount}`);
     if (result.error || !result.data?.success) return { error: result.error || { message: result.data?.error || 'Wallet debit failed' } };
@@ -960,7 +987,7 @@ window.renderSidebar = function(active) {
 };
 
 window.renderTopBar = function() {
-  const profile = Auth.currentProfile;
+  const profile = Auth.currentProfile || {};
   return `
     <div class="topbar">
       <button class="topbar-menu-btn" onclick="openSidebar()">☰</button>
@@ -1311,7 +1338,8 @@ window.handleVerifyOTP = async function() {
 // ============================================================
 window.renderDashboard = async function() {
   clearAllTimers();
-  const profile = Auth.currentProfile;
+  Cache.clear();
+  const profile = await Auth.loadProfile();
   let orders = [], transactions = [];
   try { orders = (await DB.getOrders()).data; } catch(e) {}
   try { transactions = await DB.getWalletTransactions(5); } catch(e) {}
@@ -1649,17 +1677,50 @@ window.processPayment = async function(productId) {
   const pm = document.querySelector('input[name="pm"]:checked')?.value || 'razorpay';
   const { data: order, error: orderError } = await DB.createOrder(product, pm);
   if (orderError || !order) { Toast.show('Failed to create order. Please configure Supabase.', 'error'); btn.disabled = false; btn.textContent = 'Pay'; return; }
-  if (pm === 'wallet') {
-    const balance = Auth.currentProfile?.wallet_balance || 0;
-    if (balance < product.price) { Toast.show(`Insufficient wallet balance. Need ${Utils.formatCurrency(product.price)}.`, 'error'); btn.disabled = false; btn.textContent = 'Pay'; return; }
-    const debit = await DB.debitWallet(product.price, 'debit', `Purchase: ${product.name}`, order.id, 'order');
-    if (debit.error || !debit.data?.success) { Toast.show('Wallet debit failed', 'error'); btn.disabled = false; btn.textContent = 'Pay'; return; }
-    Cache.clear();
+ if (pm === 'wallet') {
+    const balance = parseFloat(Auth.currentProfile?.wallet_balance || 0);
+    const price = parseFloat(product.price);
+    
+    if (balance < price) { 
+      Toast.show(`Insufficient balance. You have ${Utils.formatCurrency(balance)}, need ${Utils.formatCurrency(price)}.`, 'error'); 
+      btn.disabled = false; 
+      btn.innerHTML = `Pay ${Utils.formatCurrency(price)} →`; 
+      return; 
+    }
+
+    btn.textContent = 'Debiting wallet...';
+
+    const debit = await DB.debitWallet(
+      price, 
+      'debit', 
+      `Purchase: ${product.name}`, 
+      order.id, 
+      'order'
+    );
+
+    console.log('Debit result:', debit);
+
+    if (!debit.data?.success) { 
+      const errMsg = debit.data?.error || debit.error?.message || 'Wallet debit failed';
+      Toast.show(errMsg, 'error'); 
+      // Cancel the pending order
+      await supabaseClient.from('orders').update({ status: 'failed' }).eq('id', order.id);
+      btn.disabled = false; 
+      btn.innerHTML = `Pay ${Utils.formatCurrency(price)} →`; 
+      return; 
+    }
+
+    btn.textContent = 'Activating plan...';
     await DB.activateOrder(order.id, 'wallet_payment');
+    
+    // Clear cache BEFORE reloading profile so fresh data loads
+    Cache.clear();
     await Auth.loadProfile();
+    
     document.getElementById('payment-modal')?.remove();
-    Toast.show('Plan activated! Daily cashback starts in 24 hours 🎉', 'success');
-    Router.navigate('dashboard'); return;
+    Toast.show(`Plan activated! ₹${price.toLocaleString('en-IN')} debited. Cashback starts in 24 hours 🎉`, 'success');
+    Router.navigate('dashboard'); 
+    return;
   }
   if (typeof Razorpay !== 'undefined') {
     const options = { key: APP_CONFIG.razorpayKeyId, amount: product.price * 100, currency: 'INR', name: 'CashX', description: product.name, order_id: order.razorpay_order_id, handler: async (response) => { await DB.activateOrder(order.id, response.razorpay_payment_id); await Auth.loadProfile(); document.getElementById('payment-modal')?.remove(); Toast.show('Payment successful! Plan activated 🎉', 'success'); Router.navigate('dashboard'); }, prefill: { email: Auth.currentUser?.email, contact: Auth.currentProfile?.phone }, theme: { color: '#6366f1' } };
