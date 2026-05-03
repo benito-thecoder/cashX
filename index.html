@@ -1761,9 +1761,10 @@ window.renderWallet = async function() {
               <div class="wallet-sub">Updated just now</div>
             </div>
             <div class="wallet-actions">
-              <button class="wallet-action-btn" onclick="Router.navigate('withdrawals')"><span>📤</span> Withdraw</button>
-              <button class="wallet-action-btn" onclick="Router.navigate('products')"><span>🔄</span> Reinvest</button>
-            </div>
+  <button class="wallet-action-btn" onclick="showDepositModal()"><span>💳</span> Deposit</button>
+  <button class="wallet-action-btn" onclick="Router.navigate('withdrawals')"><span>📤</span> Withdraw</button>
+  <button class="wallet-action-btn" onclick="Router.navigate('products')"><span>🔄</span> Reinvest</button>
+</div>
             <div class="wallet-stats">
               <div class="wallet-stat"><div class="ws-label">Total Earned</div><div class="ws-value">${Utils.formatCurrency(profile?.total_cashback_earned)}</div></div>
               <div class="wallet-stat"><div class="ws-label">Total Invested</div><div class="ws-value">${Utils.formatCurrency(profile?.total_invested)}</div></div>
@@ -2306,6 +2307,130 @@ window.addEventListener('load', async () => {
   await Auth.init();
   Router.handleRoute();
 });
+window.showDepositModal = function() {
+  const existing = document.getElementById('deposit-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'deposit-modal';
+  modal.innerHTML = `
+    <div class="modal glass-card">
+      <div class="modal-header">
+        <h2 class="modal-title">💳 Deposit Money</h2>
+        <button class="modal-close" onclick="document.getElementById('deposit-modal').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:1rem;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius-sm);margin-bottom:1.5rem">
+          <div style="font-size:0.8rem;color:var(--text-2);margin-bottom:0.25rem">Current Balance</div>
+          <div style="font-size:1.8rem;font-weight:800;font-family:var(--mono);color:var(--success)">${Utils.formatCurrency(Auth.currentProfile?.wallet_balance)}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1.25rem">
+          ${[499,999,1999,4999,9999,19999].map(amt => `
+            <button onclick="setDepositAmount(${amt})" class="deposit-quick-btn" style="padding:0.6rem;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-2);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--primary)';this.style.color='var(--primary-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+              ₹${amt.toLocaleString('en-IN')}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Enter Amount (₹)</label>
+          <input type="number" class="form-input" id="deposit-amount" placeholder="Min ₹100" min="100" oninput="updateDepositSummary()">
+        </div>
+
+        <div id="deposit-summary" style="display:none;padding:1rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-sm);margin-bottom:1.25rem">
+          <div style="display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:0.4rem">
+            <span style="color:var(--text-2)">Deposit Amount</span>
+            <span id="dep-amount-display" style="font-weight:600;font-family:var(--mono)">₹0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:0.4rem">
+            <span style="color:var(--text-2)">Processing Fee</span>
+            <span style="color:var(--success);font-weight:600">FREE</span>
+          </div>
+          <div style="height:1px;background:var(--border);margin:0.5rem 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700">
+            <span>You Get</span>
+            <span id="dep-total-display" style="color:var(--success);font-family:var(--mono)">₹0</span>
+          </div>
+        </div>
+
+        <div style="padding:0.75rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-sm);margin-bottom:1.25rem;font-size:0.75rem;color:var(--text-2)">
+          ⚡ Money will be credited to your wallet instantly after payment
+        </div>
+
+        <button class="btn btn-primary w-full btn-lg" id="deposit-pay-btn" onclick="processDeposit()" disabled style="opacity:0.6">
+          Proceed to Pay →
+        </button>
+        <p style="text-align:center;font-size:0.72rem;color:var(--text-3);margin-top:0.75rem">🔒 Secured by Razorpay · 100% Safe</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+};
+
+window.setDepositAmount = function(amount) {
+  document.getElementById('deposit-amount').value = amount;
+  updateDepositSummary();
+};
+
+window.updateDepositSummary = function() {
+  const amount = parseFloat(document.getElementById('deposit-amount').value);
+  const summary = document.getElementById('deposit-summary');
+  const btn = document.getElementById('deposit-pay-btn');
+  if (!amount || amount < 100) {
+    summary.style.display = 'none';
+    btn.disabled = true; btn.style.opacity = '0.6';
+    return;
+  }
+  summary.style.display = 'block';
+  btn.disabled = false; btn.style.opacity = '1';
+  document.getElementById('dep-amount-display').textContent = Utils.formatCurrency(amount);
+  document.getElementById('dep-total-display').textContent = Utils.formatCurrency(amount);
+};
+
+window.processDeposit = async function() {
+  const amount = parseFloat(document.getElementById('deposit-amount').value);
+  if (!amount || amount < 100) { Toast.show('Minimum deposit is ₹100', 'warning'); return; }
+
+  const btn = document.getElementById('deposit-pay-btn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+
+  // Razorpay integration placeholder
+  if (typeof Razorpay !== 'undefined' && APP_CONFIG.razorpayKeyId) {
+    const options = {
+      key: APP_CONFIG.razorpayKeyId,
+      amount: amount * 100,
+      currency: 'INR',
+      name: 'CashX',
+      description: 'Wallet Deposit',
+      handler: async function(response) {
+        // Credit wallet after successful payment
+        const result = await DB.creditWallet(amount, 'deposit', `Wallet deposit of ${Utils.formatCurrency(amount)}`, response.razorpay_payment_id, 'razorpay');
+        if (result.error) { Toast.show('Payment done but wallet credit failed. Contact support.', 'error'); return; }
+        await Auth.loadProfile();
+        Cache.clear();
+        document.getElementById('deposit-modal')?.remove();
+        Toast.show(`₹${amount.toLocaleString('en-IN')} deposited successfully! 🎉`, 'success');
+        renderWallet();
+      },
+      prefill: { email: Auth.currentUser?.email, contact: Auth.currentProfile?.phone },
+      theme: { color: '#6366f1' }
+    };
+    new Razorpay(options).open();
+    btn.disabled = false; btn.textContent = 'Proceed to Pay →';
+  } else {
+    // Demo mode — credit directly
+    const result = await DB.creditWallet(amount, 'deposit', `Wallet deposit of ${Utils.formatCurrency(amount)}`);
+    if (result.error) { Toast.show('Deposit failed: ' + result.error.message, 'error'); btn.disabled = false; btn.textContent = 'Proceed to Pay →'; return; }
+    await Auth.loadProfile();
+    Cache.clear();
+    document.getElementById('deposit-modal')?.remove();
+    Toast.show(`₹${amount.toLocaleString('en-IN')} deposited! (Demo Mode) 🎉`, 'success');
+    renderWallet();
+  }
+};
 </script>
 </body>
 </html>
